@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MvcMovie.Models;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace MvcMovie
 {
@@ -35,13 +36,16 @@ namespace MvcMovie
             });
 
             services.AddDbContext<MvcMovieContext>(options =>
-            options.UseMySql(Configuration.GetConnectionString("MovieContext")));
+            {
+                options.UseMySql(Configuration.GetConnectionString("MovieContext"));
+            });
+            services.AddHealthChecks();
+            services.AddControllersWithViews();
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -58,12 +62,15 @@ namespace MvcMovie
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
-            app.UseMvc(routes =>
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller=Movies}/{action=Index}/{id?}");
+                endpoints.MapHealthChecks("/healthcheck");
+                endpoints.MapDefaultControllerRoute();
+                endpoints.MapControllerRoute("default", "{controller=Movies}/{action=Index}/{id?}");
+
             });
+
         }
     }
 }
